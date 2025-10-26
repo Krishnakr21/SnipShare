@@ -68,7 +68,7 @@ const UserFiles = () => {
     <div className="relative rounded-xl shadow-2xl bg-gray-800 border border-gray-700 animate-pulse">
       <div className="p-4 sm:p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-3 bg-gray-7w00 rounded-lg">
+          <div className="p-3 bg-gray-700 rounded-lg">
             <div className="w-6 h-6 bg-gray-600 rounded"></div>
           </div>
           <div className="h-5 bg-gray-600 rounded w-1/2"></div>
@@ -118,7 +118,7 @@ const UserFiles = () => {
               files.map((file) => (
                 <div
                   key={file.id}
-                  className="relative rounded-xl shadow-2xl bg-gray-8w00 border border-gray-700 hover:border-blue-500 transition-all duration-300 group"
+                  className="relative rounded-xl shadow-2xl bg-gray-800 border border-gray-700 hover:border-blue-500 transition-all duration-300 group"
                 >
                   <div className="p-4 sm:p-6">
                     <div className="flex items-center gap-3 mb-4">

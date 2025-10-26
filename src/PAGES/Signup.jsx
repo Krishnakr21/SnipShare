@@ -1,37 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
-import { isUserLoggedIn } from '../utils/auth';
 import { FcGoogle } from 'react-icons/fc';
 import toast, { Toaster } from 'react-hot-toast';
 import { FaHome } from 'react-icons/fa';
 import { ThreeDots } from 'react-loader-spinner';
+import config from '../config';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [signupLoading, setSignupLoading] = useState(false);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      setLoading(true);
-      if (isUserLoggedIn()) {
-        navigate('/');
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
-  }, [navigate]);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  console.log('Signup component rendered');
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    console.log('Signup form submitted', { email });
     setSignupLoading(true);
     try {
       const { error } = await supabase.auth.signUp({
@@ -41,12 +27,17 @@ const Signup = () => {
           emailRedirectTo: window.location.origin
         }
       });
-      if (error) throw error;
-      toast.success('We have sent a verification email. Please check your inbox and verify your email address.');
+      if (error) {
+        console.error('Supabase signup error:', error);
+        throw error;
+      }
+      console.log('Signup successful');
+      toast.success('Account created successfully! Please check your email to verify your account.');
       navigate('/login');
       setEmail('');
       setPassword('');
     } catch (error) {
+      console.error('Signup error:', error);
       toast.error(error.message);
     } finally {
       setSignupLoading(false);
@@ -57,7 +48,7 @@ const Signup = () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: provider,
       options: {
-        redirectTo: window.location.origin
+        redirectTo: config.codeCompilerUrl
       }
     });
 
@@ -67,7 +58,7 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
       <Toaster position="top-center" reverseOrder={false} />
       <div className="absolute top-4 left-4 flex items-center">
         <Link to="/" className="text-blue-400 hover:text-blue-300 flex items-center">
@@ -138,8 +129,9 @@ const Signup = () => {
 
           <div className="mt-6 grid grid-cols-1 gap-3">
             <button
+              type="button"
               onClick={() => handleOAuthSignup('google')}
-              className="w-full inline-flex justify-center py-2 px-4 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-white bg-gray-7w00 hover:bg-gray-600 items-center gap-2"
+              className="w-full inline-flex justify-center py-2 px-4 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 items-center gap-2"
             >
               <FcGoogle className="w-5 h-5" />
               <span>Continue with Google</span>

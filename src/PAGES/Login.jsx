@@ -1,47 +1,43 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
-import { isUserLoggedIn } from '../utils/auth';
 import { FcGoogle } from 'react-icons/fc';
 import toast, { Toaster } from 'react-hot-toast';
 import { FaHome } from 'react-icons/fa';
 import { ThreeDots } from 'react-loader-spinner';
+import config from '../config';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
   const [loginLoading, setLoginLoading] = useState(false);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      setLoading(true);
-      if (isUserLoggedIn()) {
-        navigate('/');
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
-  }, [navigate]);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  console.log('Login component rendered');
+  console.log('Config codeCompilerUrl:', config.codeCompilerUrl);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    console.log('Login form submitted', { email });
     setLoginLoading(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
-      if (error) throw error;
-      toast.success('Logged in successfully!');
-      navigate('/');
+      if (error) {
+        console.error('Supabase login error:', error);
+        throw error;
+      }
+      console.log('Login successful, redirecting to:', config.codeCompilerUrl);
+      toast.success('Logged in successfully! Redirecting to Code Compiler...');
+      
+      // Redirect to Code_compiler app
+      setTimeout(() => {
+        window.location.href = config.codeCompilerUrl;
+      }, 1000);
     } catch (error) {
+      console.error('Login error:', error);
       toast.error(error.message);
     } finally {
       setLoginLoading(false);
@@ -52,7 +48,7 @@ const Login = () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: provider,
       options: {
-        redirectTo: window.location.origin
+        redirectTo: config.codeCompilerUrl
       }
     });
 
@@ -62,7 +58,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black to-gray-900">
       <Toaster position="top-center" reverseOrder={false} />
       <div className="absolute top-4 left-4 flex items-center">
         <Link to="/" className="text-blue-400 hover:text-blue-300 flex items-center">
@@ -113,6 +109,7 @@ const Login = () => {
           <div className="text-center mt-4">
             <p className="text-sm text-gray-300">Not registered yet?</p>
             <button
+              type="button"
               onClick={() => navigate('/signup')}
               className="mt-2 w-full flex justify-center py-2 px-4 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
@@ -133,6 +130,7 @@ const Login = () => {
 
           <div className="mt-6 grid grid-cols-1 gap-3">
             <button
+              type="button"
               onClick={() => handleOAuthLogin('google')}
               className="w-full inline-flex justify-center py-2 px-4 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 items-center gap-2"
             >

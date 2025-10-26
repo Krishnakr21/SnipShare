@@ -1,58 +1,20 @@
-import { useState, useEffect } from 'react';
 import { FaArrowRight, FaCode, FaBolt } from 'react-icons/fa';
 import Navbar from '../components/Navbar';
-import { Toaster } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import Footer from '../components/Footer';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import Features from '../components/Fetures';
 import Testimonials from '../components/Testimonials';
 import FAQ from '../components/FAQ';
-import { nanoid } from 'nanoid';
+import config from '../config';
 
 const Home = () => {
   const navigate = useNavigate();
 
-  const handleCreateNew = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    const shortId = nanoid(6);
-
-    try {
-      const { data, error } = await supabase
-        .from('documents')
-        .insert({ 
-          id: shortId,
-          content: '',
-          user_id: user.id 
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      if (data) {
-        navigate(`/editor/${shortId}`);
-      }
-    } catch (error) {
-      console.error('Error creating document:', error);
-    }
-  };
-
-  const handleGetStartedClick = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    await handleCreateNew();
+  const handleGetStartedClick = () => {
+    console.log('Get Started clicked - redirecting to login');
+    navigate('/login');
   };
 
   return (
@@ -74,10 +36,17 @@ const Home = () => {
                 Experience the future of coding with CodeShare - where <span className="font-bold underline decoration-pink-500">writing</span>, <span className="font-bold underline decoration-orange-500">compiling</span>, and <span className="font-bold underline decoration-yellow-500">sharing</span> code becomes seamless. Our platform combines <span className="font-bold underline decoration-purple-500">intelligent saving</span>, <span className="font-bold underline decoration-blue-500">fast compilation</span>, and <span className="font-bold underline decoration-green-500">real-time collaboration</span>. Whether solo or team-based, CodeShare lets you <span className="font-bold underline decoration-indigo-500">version control</span>, <span className="font-bold underline decoration-red-500">debug</span>, and <span className="font-bold underline decoration-teal-500">deploy</span> with confidence - all in one powerful platform.
               </p>
               <div className="flex flex-wrap gap-4">
-                <button onClick={handleGetStartedClick} className="bg-gradient-to-r from-pink-500 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-all transform hover:scale-105 shadow-md">
+                <button 
+                  type="button"
+                  onClick={handleGetStartedClick} 
+                  className="bg-gradient-to-r from-pink-500 to-orange-500 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 hover:opacity-90 transition-all transform hover:scale-105 shadow-md"
+                >
                   Get Started <FaArrowRight />
                 </button>
-                <button className="backdrop-blur-sm bg-white/5 border border-white/10 text-gray-300 px-6 py-3 rounded-lg font-medium flex items-center gap-2 hover:bg-white/10 hover:border-white/20 transition-all">
+                <button 
+                  type="button"
+                  className="backdrop-blur-sm bg-white/5 border border-white/10 text-gray-300 px-6 py-3 rounded-lg font-medium flex items-center gap-2 hover:bg-white/10 hover:border-white/20 transition-all"
+                >
                   <FaCode />VsCode Extension <FaBolt className="text-orange-400" />
                 </button>
               </div>

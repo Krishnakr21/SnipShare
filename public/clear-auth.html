@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Authentication</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        button {
+            background: #e11d48;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 0;
+            width: 100%;
+        }
+        button:hover {
+            background: #be123c;
+        }
+        .success {
+            background: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+        .info {
+            background: #3b82f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        pre {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Clear Authentication</h1>
+    
+    <div class="info">
+        <strong>Why use this?</strong><br>
+        If "Get Started" redirects without asking for login, you're already logged in. Use this page to logout and test the authentication flow.
+    </div>
+
+    <button onclick="clearAuth()">🚪 Logout & Clear All Auth Data</button>
+    <button onclick="checkAuth()">🔍 Check Current Auth Status</button>
+    
+    <div id="result"></div>
+    <div id="success" class="success">✅ Successfully logged out! Redirecting to home...</div>
+
+    <script>
+        async function clearAuth() {
+            const result = document.getElementById('result');
+            const success = document.getElementById('success');
+            
+            try {
+                // Clear localStorage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear all cookies
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                
+                result.innerHTML = '<pre>Cleared:\n- localStorage\n- sessionStorage\n- All cookies</pre>';
+                success.style.display = 'block';
+                
+                // Redirect to home after 2 seconds
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+                
+            } catch (error) {
+                result.innerHTML = '<pre style="color: #ef4444;">Error: ' + error.message + '</pre>';
+            }
+        }
+
+        async function checkAuth() {
+            const result = document.getElementById('result');
+            
+            try {
+                // Check localStorage
+                const authKeys = Object.keys(localStorage).filter(k => k.includes('supabase') || k.includes('auth'));
+                
+                let status = '<h3>Current Auth Status:</h3><pre>';
+                
+                if (authKeys.length === 0) {
+                    status += '❌ No authentication data found\n';
+                    status += '✅ You are logged out\n';
+                } else {
+                    status += '✅ Authentication data found:\n\n';
+                    authKeys.forEach(key => {
+                        const value = localStorage.getItem(key);
+                        try {
+                            const parsed = JSON.parse(value);
+                            if (parsed.access_token) {
+                                status += `🔑 ${key}:\n`;
+                                status += `   - Has access token: YES\n`;
+                                status += `   - User: ${parsed.user?.email || 'Unknown'}\n\n`;
+                            }
+                        } catch (e) {
+                            status += `📦 ${key}: [Non-JSON data]\n`;
+                        }
+                    });
+                    status += '\n⚠️ You are currently LOGGED IN\n';
+                    status += '💡 Click "Logout" button above to clear auth data';
+                }
+                
+                status += '</pre>';
+                result.innerHTML = status;
+                
+            } catch (error) {
+                result.innerHTML = '<pre style="color: #ef4444;">Error: ' + error.message + '</pre>';
+            }
+        }
+
+        // Auto-check on load
+        window.onload = checkAuth;
+    </script>
+</body>
+</html>

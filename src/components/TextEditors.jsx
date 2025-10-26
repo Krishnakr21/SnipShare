@@ -2,13 +2,72 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import 'monaco-editor/esm/vs/basic-languages/python/python.contribution.js';
 import 'monaco-editor/esm/vs/basic-languages/java/java.contribution.js';
+import 'monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js';
+import 'monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution.js';
+import 'monaco-editor/esm/vs/basic-languages/csharp/csharp.contribution.js';
+import 'monaco-editor/esm/vs/basic-languages/go/go.contribution.js';
+import 'monaco-editor/esm/vs/basic-languages/rust/rust.contribution.js';
+import 'monaco-editor/esm/vs/basic-languages/typescript/typescript.contribution.js';
 import 'monaco-editor/min/vs/editor/editor.main.css';
 import Editor from "@monaco-editor/react";
-import config from '../config';
-import { AppBar, Toolbar, Select, MenuItem, Button, Link, Box, Typography } from '@mui/material';
-import { Code, ArrowBack, Share, FilePresent, Edit } from '@mui/icons-material';
+import { AppBar, Toolbar, Select, MenuItem, Button, Link, Box, Typography, Chip } from '@mui/material';
+import { Code, ArrowBack, Share, FilePresent, Edit, Timer, Memory } from '@mui/icons-material';
 import toast, { Toaster } from 'react-hot-toast';
 import { supabase } from '../supabaseClient';
+import { executeCode, isLanguageSupported } from '../utils/codeExecutor';
+
+// Helper function to get default code for each language
+const getDefaultCode = (language) => {
+  const templates = {
+    python: 'print("Hello, World!")',
+    java: `import java.util.*;
+import java.io.*;
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, World!");
+    }
+}`,
+    javascript: 'console.log("Hello, World!");',
+    typescript: 'console.log("Hello, World!");',
+    cpp: `#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Hello, World!" << endl;
+    return 0;
+}`,
+    c: `#include <stdio.h>
+
+int main() {
+    printf("Hello, World!\\n");
+    return 0;
+}`,
+    csharp: `using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Hello, World!");
+    }
+}`,
+    go: `package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello, World!")
+}`,
+    rust: `fn main() {
+    println!("Hello, World!");
+}`,
+    php: `<?php
+echo "Hello, World!";
+?>`,
+    ruby: 'puts "Hello, World!"',
+    other: ''
+  };
+  
+  return templates[language] || '';
+};
 
 const TextEditors = () => {
   const { id } = useParams();
@@ -44,20 +103,7 @@ const TextEditors = () => {
         // If no content exists for the selected language, set hardcoded default code
         let contentForLanguage = data.language_content?.[selectedLanguage];
         if (!contentForLanguage) {
-          if (selectedLanguage === 'java') {
-            contentForLanguage = `import java.util.*;
-import java.io.*;
-public class Main {
-    public static void main(String[] args) {
-        System.out.println("Hello from java!");
-    }
-}
-`;
-          } else if (selectedLanguage === 'python') {
-            contentForLanguage = 'print("hello world")';
-          } else if (selectedLanguage === 'other') {
-            contentForLanguage = '';
-          }
+          contentForLanguage = getDefaultCode(selectedLanguage);
         }
 
         setContent(contentForLanguage);
@@ -130,20 +176,7 @@ public class Main {
 
     // If no content exists for the selected language, set hardcoded default code
     if (!contentForLanguage) {
-      if (selectedLanguage === 'java') {
-        contentForLanguage = `import java.util.*;
-import java.io.*;
-public class Main {
-    public static void main(String[] args) {
-        System.out.println("Hello from java!");
-    }
-}
-`;
-      } else if (selectedLanguage === 'python') {
-        contentForLanguage = 'print("hello world")';
-      } else if (selectedLanguage === 'other') {
-        contentForLanguage = '';
-      }
+      contentForLanguage = getDefaultCode(selectedLanguage);
     }
 
     setContent(contentForLanguage);
@@ -183,44 +216,27 @@ public class Main {
 
   const handleRunCode = async () => {
     setIsRunning(true);
+    setOutput('Executing code...');
+    
     try {
-      const apiEndpoint = language === 'java' ? config.javaApi : language === 'python' ? config.pythonApi : null;
-      if (!apiEndpoint) {
-        setOutput("Language not supported");
+      if (!isLanguageSupported(language)) {
+        setOutput(`Language "${language}" is not supported for execution.\n\nSupported languages: Python, Java, JavaScript, C++, C, C#, Go, Rust, TypeScript, PHP, Ruby`);
         return;
       }
-      const response = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: content,
-          input: input
-        })
-      });
-      const data = await response.json();
-      if (data.error) {
-        setOutput(data.error);
+      
+      const result = await executeCode(language, content, input);
+      
+      if (result.success) {
+        const formattedOutput = `✅ Execution Successful\nTime: ${result.time}\nMemory: ${result.memory}\n\n${result.output}`;
+        setOutput(formattedOutput);
+        toast.success('Code executed successfully!');
       } else {
-        setOutput(
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <span className="text-blue-400">Time:</span>
-              <span>{data.time}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-blue-400">Memory:</span>
-              <span>{data.memory}</span>
-            </div>
-            <div className="mt-4">
-              {data.output}
-            </div>
-          </div>
-        );
+        setOutput(`❌ Execution Failed\n\n${result.error}`);
+        toast.error('Execution failed');
       }
     } catch (error) {
-      setOutput('Error: ' + error.message);
+      setOutput('❌ Error: ' + error.message);
+      toast.error('Execution error');
     } finally {
       setIsRunning(false);
     }
@@ -311,6 +327,15 @@ public class Main {
             >
               <MenuItem value="python" sx={{ fontSize: '0.75rem', color: 'black' }}>Python</MenuItem>
               <MenuItem value="java" sx={{ fontSize: '0.75rem', color: 'black' }}>Java</MenuItem>
+              <MenuItem value="javascript" sx={{ fontSize: '0.75rem', color: 'black' }}>JavaScript</MenuItem>
+              <MenuItem value="typescript" sx={{ fontSize: '0.75rem', color: 'black' }}>TypeScript</MenuItem>
+              <MenuItem value="cpp" sx={{ fontSize: '0.75rem', color: 'black' }}>C++</MenuItem>
+              <MenuItem value="c" sx={{ fontSize: '0.75rem', color: 'black' }}>C</MenuItem>
+              <MenuItem value="csharp" sx={{ fontSize: '0.75rem', color: 'black' }}>C#</MenuItem>
+              <MenuItem value="go" sx={{ fontSize: '0.75rem', color: 'black' }}>Go</MenuItem>
+              <MenuItem value="rust" sx={{ fontSize: '0.75rem', color: 'black' }}>Rust</MenuItem>
+              <MenuItem value="php" sx={{ fontSize: '0.75rem', color: 'black' }}>PHP</MenuItem>
+              <MenuItem value="ruby" sx={{ fontSize: '0.75rem', color: 'black' }}>Ruby</MenuItem>
               <MenuItem value="other" sx={{ fontSize: '0.75rem', color: 'black' }}>Other</MenuItem>
             </Select>
           </Box>
@@ -385,7 +410,7 @@ public class Main {
                 marginTop: '-20px',
               }}
             >
-              {isRunning ? 'Running...' : 'Run'}
+              {isRunning ? 'Running...' : 'Run Code'}
             </Button>
            
           </Box>

@@ -1,21 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { isUserLoggedIn } from '../utils/auth';
-import { FaUserCircle, FaPlus, FaFileAlt, FaSignOutAlt, FaCode } from 'react-icons/fa';
+import { isUserLoggedInSync } from '../utils/auth';
+import { FaUserCircle, FaPlus, FaFileAlt, FaSignOutAlt } from 'react-icons/fa';
 import { FiLogIn, FiUserPlus } from 'react-icons/fi';
-import { nanoid } from 'nanoid';
-import { Link } from 'react-router-dom';
+import config from '../config';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(isUserLoggedIn());
+  const [isLoggedIn, setIsLoggedIn] = useState(isUserLoggedInSync());
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
     const checkAuth = () => {
-      const loggedIn = isUserLoggedIn();
+      const loggedIn = isUserLoggedInSync();
       setIsLoggedIn(loggedIn);
     };
 
@@ -53,34 +52,18 @@ const Navbar = () => {
       return;
     }
 
-    const shortId = nanoid(6);
-
-    try {
-      const { data, error } = await supabase
-        .from('documents')
-        .insert({ 
-          id: shortId,
-          content: '',
-          user_id: user.id 
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      if (data) {
-        navigate(`/editor/${shortId}`);
-      }
-    } catch (error) {
-      console.error('Error creating document:', error);
-      // Handle error (e.g., show toast notification)
-    }
+    // Redirect to Code_compiler app
+    window.location.href = config.codeCompilerUrl;
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('sb-krgblphvrhpvmneqipqe-auth-token');
-    setIsLoggedIn(false);
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setIsLoggedIn(false);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const toggleProfileDropdown = () => {
@@ -124,13 +107,13 @@ const Navbar = () => {
               {showProfileDropdown && (
                 <div className="absolute right-0 mt-2 w-48 backdrop-blur-lg bg-white/5 rounded-lg shadow-xl z-50 border border-white/10 overflow-hidden">
                   <div className="py-1">
-                    <a 
-                      href="/files" 
+                    <Link 
+                      to="/files" 
                       className="flex items-center gap-3 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 w-full transition-colors"
                     >
                       <FaFileAlt className="w-4 h-4 text-pink-500" />
                       Your Files
-                    </a>
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="flex items-center gap-3 px-4 py-2 text-sm text-gray-200 hover:bg-white/10 w-full transition-colors"
@@ -144,22 +127,22 @@ const Navbar = () => {
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <a 
-                href="/login" 
+              <Link 
+                to="/login" 
                 className="flex items-center gap-2 backdrop-blur-sm bg-white/5 border border-white/10 text-gray-300 px-3 py-1.5 rounded-lg transition-all hover:bg-white/10 hover:border-white/20 transform hover:scale-105"
                 title="Login"
               >
                 <FiLogIn className="w-4 h-4" />
                 <span className="hidden md:inline text-sm font-medium">Login</span>
-              </a>
-              <a 
-                href="/signup" 
+              </Link>
+              <Link 
+                to="/signup" 
                 className="flex items-center gap-2 bg-gradient-to-r from-pink-500 to-orange-500 text-white px-3 py-1.5 rounded-lg transition-all hover:opacity-90 transform hover:scale-105 shadow-md"
                 title="Signup"
               >
                 <FiUserPlus className="w-4 h-4" />
                 <span className="hidden md:inline text-sm font-medium">Signup</span>
-              </a>
+              </Link>
             </div>
           )}
         </div>
